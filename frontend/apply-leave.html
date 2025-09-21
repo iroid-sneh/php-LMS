@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Apply for Leave - Leave Management System</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+        />
+        <link
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+            rel="stylesheet"
+        />
+        <link href="css/style.css" rel="stylesheet" />
+    </head>
+    <body>
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="index.html">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    Leave Management System
+                </a>
+                <button
+                    class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav"
+                >
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="dashboard.html">
+                                <i class="fas fa-tachometer-alt me-1"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="apply-leave.html">
+                                <i class="fas fa-plus-circle me-1"></i>
+                                Apply Leave
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="my-leaves.html">
+                                <i class="fas fa-calendar-check me-1"></i>
+                                My Leaves
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="logout()">
+                                <i class="fas fa-sign-out-alt me-1"></i>
+                                Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="container mt-4">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h4 class="mb-0">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                Apply for Leave
+                            </h4>
+                        </div>
+                        <div class="card-body p-4">
+                            <div id="alertContainer"></div>
+
+                            <form id="applyLeaveForm">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="leaveType" class="form-label">
+                                            Leave Type *
+                                        </label>
+                                        <select
+                                            class="form-select"
+                                            id="leaveType"
+                                            name="leaveType"
+                                            required
+                                        >
+                                            <option value="">Select Leave Type</option>
+                                            <option value="sick">Sick Leave</option>
+                                            <option value="vacation">Vacation</option>
+                                            <option value="personal">Personal</option>
+                                            <option value="emergency">Emergency</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="durationUnit" class="form-label">
+                                            Duration Unit
+                                        </label>
+                                        <select
+                                            class="form-select"
+                                            id="durationUnit"
+                                            name="durationUnit"
+                                        >
+                                            <option value="days">Days</option>
+                                            <option value="hours">Hours</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="startDate" class="form-label">
+                                            Start Date *
+                                        </label>
+                                        <input
+                                            type="date"
+                                            class="form-control"
+                                            id="startDate"
+                                            name="startDate"
+                                            required
+                                        />
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="endDate" class="form-label">End Date *</label>
+                                        <input
+                                            type="date"
+                                            class="form-control"
+                                            id="endDate"
+                                            name="endDate"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="duration" class="form-label">
+                                        Duration (Auto-calculated)
+                                    </label>
+                                    <div class="input-group">
+                                        <input
+                                            type="number"
+                                            class="form-control"
+                                            id="duration"
+                                            name="duration"
+                                            step="0.5"
+                                            min="0.5"
+                                            readonly
+                                        />
+                                        <span class="input-group-text" id="durationUnitText">
+                                            days
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label for="reason" class="form-label">Reason *</label>
+                                    <textarea
+                                        class="form-control"
+                                        id="reason"
+                                        name="reason"
+                                        rows="4"
+                                        placeholder="Please provide a detailed reason for your leave request..."
+                                        required
+                                    ></textarea>
+                                    <div class="form-text">Minimum 10 characters required</div>
+                                </div>
+
+                                <div class="d-flex justify-content-between">
+                                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                                        <i class="fas fa-paper-plane me-2"></i>
+                                        <span class="btn-text">Submit Leave Request</span>
+                                    </button>
+                                    <a href="dashboard.html" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-2"></i>
+                                        Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="js/auth.js"></script>
+        <script src="js/api.js"></script>
+        <script>
+            // Check authentication on page load
+            document.addEventListener("DOMContentLoaded", function () {
+                checkAuth()
+                    .then((user) => {
+                        if (user.role === "hr") {
+                            window.location.href = "admin-dashboard.html";
+                            return;
+                        }
+
+                        // Set minimum date to today
+                        const today = new Date().toISOString().split("T")[0];
+                        document.getElementById("startDate").min = today;
+                        document.getElementById("endDate").min = today;
+
+                        // Add event listeners
+                        setupFormListeners();
+                    })
+                    .catch(() => {
+                        window.location.href = "login.html";
+                    });
+            });
+
+            function setupFormListeners() {
+                // Calculate duration when dates change
+                document.getElementById("startDate").addEventListener("change", calculateDuration);
+                document.getElementById("endDate").addEventListener("change", calculateDuration);
+
+                // Update duration unit text
+                document.getElementById("durationUnit").addEventListener("change", function () {
+                    document.getElementById("durationUnitText").textContent = this.value;
+                    calculateDuration();
+                });
+
+                // Form submission
+                document.getElementById("applyLeaveForm").addEventListener("submit", handleSubmit);
+            }
+
+            function calculateDuration() {
+                const startDate = document.getElementById("startDate").value;
+                const endDate = document.getElementById("endDate").value;
+                const durationUnit = document.getElementById("durationUnit").value;
+
+                if (startDate && endDate) {
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+                    const diffTime = Math.abs(end.getTime() - start.getTime());
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+                    let duration = diffDays;
+                    if (durationUnit === "hours") {
+                        duration = diffDays * 24;
+                    }
+
+                    document.getElementById("duration").value = duration;
+                }
+            }
+
+            async function handleSubmit(e) {
+                e.preventDefault();
+
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData.entries());
+
+                // Validate required fields
+                if (!data.leaveType || !data.startDate || !data.endDate || !data.reason) {
+                    showAlert("error", "Please fill in all required fields");
+                    return;
+                }
+
+                // Validate reason length
+                if (data.reason.length < 10) {
+                    showAlert("error", "Reason must be at least 10 characters long");
+                    return;
+                }
+
+                // Validate dates
+                const startDate = new Date(data.startDate);
+                const endDate = new Date(data.endDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                if (startDate >= endDate) {
+                    showAlert("error", "End date must be after start date");
+                    return;
+                }
+
+                if (startDate < today) {
+                    showAlert("error", "Cannot apply for leave in the past");
+                    return;
+                }
+
+                const submitBtn = document.getElementById("submitBtn");
+                const btnText = submitBtn.querySelector(".btn-text");
+
+                // Show loading state
+                submitBtn.disabled = true;
+                btnText.textContent = "Submitting...";
+
+                try {
+                    await apiCall("/api/leaves", "POST", {
+                        leave_type: data.leaveType,
+                        start_date: data.startDate,
+                        end_date: data.endDate,
+                        reason: data.reason,
+                        duration_unit: data.durationUnit,
+                        duration: parseFloat(data.duration),
+                    });
+
+                    showAlert(
+                        "success",
+                        "Leave application submitted successfully! Redirecting..."
+                    );
+                    setTimeout(() => {
+                        window.location.href = "my-leaves.html";
+                    }, 2000);
+                } catch (error) {
+                    showAlert("error", error.message);
+                } finally {
+                    submitBtn.disabled = false;
+                    btnText.textContent = "Submit Leave Request";
+                }
+            }
+        </script>
+    </body>
+</html>
