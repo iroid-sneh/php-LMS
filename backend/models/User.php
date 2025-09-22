@@ -73,7 +73,15 @@ class User {
                     SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_leaves
                 FROM leaves WHERE employee_id = :user_id";
         
-        return $this->db->fetch($sql, [':user_id' => $userId]);
+        $result = $this->db->fetch($sql, [':user_id' => $userId]);
+        
+        // Convert string values to integers
+        return [
+            'total_leaves' => (int)$result['total_leaves'],
+            'approved_leaves' => (int)$result['approved_leaves'],
+            'pending_leaves' => (int)$result['pending_leaves'],
+            'rejected_leaves' => (int)$result['rejected_leaves']
+        ];
     }
     
     public function getAdminStats() {
@@ -87,11 +95,21 @@ class User {
                      AND CURDATE() BETWEEN start_date AND end_date) as today_leaves
                 FROM users WHERE role = 'employee'";
         
-        return $this->db->fetch($sql);
+        $result = $this->db->fetch($sql);
+        
+        // Convert string values to integers
+        return [
+            'total_employees' => (int)$result['total_employees'],
+            'total_leaves' => (int)$result['total_leaves'],
+            'pending_leaves' => (int)$result['pending_leaves'],
+            'approved_leaves' => (int)$result['approved_leaves'],
+            'rejected_leaves' => (int)$result['rejected_leaves'],
+            'today_leaves' => (int)$result['today_leaves']
+        ];
     }
     
     public function getTodayLeavesDetails() {
-        $sql = "SELECT l.*, u.name, u.email, u.employee_id, u.department, u.position 
+        $sql = "SELECT l.*, u.name, u.email, u.employee_id as user_employee_id, u.department, u.position 
                 FROM leaves l 
                 JOIN users u ON l.employee_id = u.id 
                 WHERE l.status = 'approved' 
@@ -112,12 +130,36 @@ class User {
             'id' => $user['id'],
             'name' => $user['name'],
             'email' => $user['email'],
-            'role' => $user['role'],
+            'role' => $user['role'] ?? null,
             'department' => $user['department'],
             'position' => $user['position'],
             'employee_id' => $user['employee_id'],
-            'phone' => $user['phone'],
-            'joining_date' => $user['joining_date']
+            'phone' => $user['phone'] ?? null,
+            'joining_date' => $user['joining_date'] ?? null
+        ];
+    }
+    
+    public function formatTodayLeave($leave) {
+        if (!$leave) return null;
+        
+        return [
+            'id' => $leave['id'],
+            'employee_id' => $leave['employee_id'],
+            'leave_type' => $leave['leave_type'],
+            'start_date' => $leave['start_date'],
+            'end_date' => $leave['end_date'],
+            'duration' => (float)$leave['duration'],
+            'duration_unit' => $leave['duration_unit'],
+            'reason' => $leave['reason'],
+            'status' => $leave['status'],
+            'employee' => [
+                'id' => $leave['employee_id'],
+                'name' => $leave['name'],
+                'email' => $leave['email'],
+                'employee_id' => $leave['user_employee_id'],
+                'department' => $leave['department'],
+                'position' => $leave['position']
+            ]
         ];
     }
 }

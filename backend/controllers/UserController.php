@@ -43,7 +43,7 @@ class UserController {
             $stats = $this->userModel->getAdminStats();
             $todayLeavesDetails = $this->userModel->getTodayLeavesDetails();
             
-            $stats['today_leaves_details'] = array_map([$this->userModel, 'toArray'], $todayLeavesDetails);
+            $stats['today_leaves_details'] = array_map([$this->userModel, 'formatTodayLeave'], $todayLeavesDetails);
             
             successResponse($stats);
             

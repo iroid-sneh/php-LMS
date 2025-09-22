@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Manage Leaves - Leave Management System</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+        />
+        <link
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+            rel="stylesheet"
+        />
+        <link href="css/style.css" rel="stylesheet" />
+    </head>
+    <body>
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+            <div class="container">
+                <a class="navbar-brand" href="index.html">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    Leave Management System
+                </a>
+                <button
+                    class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav"
+                >
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="admin-dashboard.html">
+                                <i class="fas fa-tachometer-alt me-1"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="admin-leaves.html">
+                                <i class="fas fa-calendar-check me-1"></i>
+                                Manage Leaves
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="admin-employees.html">
+                                <i class="fas fa-users me-1"></i>
+                                Employees
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="logout()">
+                                <i class="fas fa-sign-out-alt me-1"></i>
+                                Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="container mt-4">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-success text-white">
+                            <h4 class="mb-0">
+                                <i class="fas fa-calendar-check me-2"></i>
+                                Manage Leave Requests
+                            </h4>
+                        </div>
+                        <div class="card-body p-4">
+                            <div id="alertContainer"></div>
+
+                            <!-- Filter Tabs -->
+                            <ul class="nav nav-tabs mb-4" id="leaveTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button
+                                        class="nav-link active"
+                                        id="pending-tab"
+                                        data-bs-toggle="tab"
+                                        data-bs-target="#pending"
+                                        type="button"
+                                        role="tab"
+                                    >
+                                        <i class="fas fa-clock me-1"></i>
+                                        Pending Requests
+                                        <span class="badge bg-warning ms-2" id="pendingCount">
+                                            0
+                                        </span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button
+                                        class="nav-link"
+                                        id="approved-tab"
+                                        data-bs-toggle="tab"
+                                        data-bs-target="#approved"
+                                        type="button"
+                                        role="tab"
+                                    >
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        Approved
+                                        <span class="badge bg-success ms-2" id="approvedCount">
+                                            0
+                                        </span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button
+                                        class="nav-link"
+                                        id="rejected-tab"
+                                        data-bs-toggle="tab"
+                                        data-bs-target="#rejected"
+                                        type="button"
+                                        role="tab"
+                                    >
+                                        <i class="fas fa-times-circle me-1"></i>
+                                        Rejected
+                                        <span class="badge bg-danger ms-2" id="rejectedCount">
+                                            0
+                                        </span>
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <!-- Tab Content -->
+                            <div class="tab-content" id="leaveTabContent">
+                                <!-- Pending Requests -->
+                                <div class="tab-pane fade show active" id="pending" role="tabpanel">
+                                    <div id="pendingLeavesContainer">
+                                        <div class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Approved Requests -->
+                                <div class="tab-pane fade" id="approved" role="tabpanel">
+                                    <div id="approvedLeavesContainer">
+                                        <div class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Rejected Requests -->
+                                <div class="tab-pane fade" id="rejected" role="tabpanel">
+                                    <div id="rejectedLeavesContainer">
+                                        <div class="text-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="js/auth.js"></script>
+        <script src="js/api.js"></script>
+        <script>
+            // Check authentication on page load
+            document.addEventListener("DOMContentLoaded", function () {
+                checkAuth()
+                    .then((user) => {
+                        if (user.role !== "hr") {
+                            window.location.href = "dashboard.html";
+                            return;
+                        }
+                        loadAllLeaves();
+                    })
+                    .catch(() => {
+                        window.location.href = "login.html";
+                    });
+            });
+
+            async function loadAllLeaves() {
+                try {
+                    const [allLeavesResponse, statsResponse] = await Promise.all([
+                        apiCall("/api/leaves/all"),
+                        apiCall("/api/users/admin-stats"),
+                    ]);
+
+                    // Update counts
+                    document.getElementById("pendingCount").textContent =
+                        statsResponse.pending_leaves;
+                    document.getElementById("approvedCount").textContent =
+                        statsResponse.approved_leaves;
+                    document.getElementById("rejectedCount").textContent =
+                        statsResponse.rejected_leaves;
+
+                    // Filter and display leaves
+                    const pendingLeaves = allLeavesResponse.filter(
+                        (leave) => leave.status === "pending"
+                    );
+                    const approvedLeaves = allLeavesResponse.filter(
+                        (leave) => leave.status === "approved"
+                    );
+                    const rejectedLeaves = allLeavesResponse.filter(
+                        (leave) => leave.status === "rejected"
+                    );
+
+                    displayLeaves(pendingLeaves, "pendingLeavesContainer");
+                    displayLeaves(approvedLeaves, "approvedLeavesContainer");
+                    displayLeaves(rejectedLeaves, "rejectedLeavesContainer");
+                } catch (error) {
+                    console.error("Error loading leaves:", error);
+                    showAlert("error", "Failed to load leave requests");
+                }
+            }
+
+            function displayLeaves(leaves, containerId) {
+                const container = document.getElementById(containerId);
+
+                if (leaves.length === 0) {
+                    container.innerHTML =
+                        '<p class="text-muted text-center">No leave requests found.</p>';
+                    return;
+                }
+
+                let html = `
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Department</th>
+                                    <th>Leave Type</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Duration</th>
+                                    <th>Reason</th>
+                                    <th>Applied At</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                leaves.forEach((leave) => {
+                    const statusClass =
+                        leave.status === "approved"
+                            ? "success"
+                            : leave.status === "rejected"
+                            ? "danger"
+                            : "warning";
+
+                    html += `
+                        <tr>
+                            <td>
+                                <div>
+                                    <strong>${leave.employee.name}</strong><br>
+                                    <small class="text-muted">${leave.employee.email}</small>
+                                </div>
+                            </td>
+                            <td>${leave.employee.department}</td>
+                            <td>
+                                <span class="badge bg-${statusClass}">${leave.leave_type}</span>
+                            </td>
+                            <td>${formatDate(leave.start_date)}</td>
+                            <td>${formatDate(leave.end_date)}</td>
+                            <td>${leave.duration} ${leave.duration_unit}</td>
+                            <td>${leave.reason}</td>
+                            <td>${formatDateTime(leave.applied_at)}</td>
+                            <td>
+                    `;
+
+                    if (leave.status === "pending") {
+                        html += `
+                            <button class="btn btn-success btn-sm me-1" onclick="approveLeave(${leave.id})">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="rejectLeave(${leave.id})">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        `;
+                    } else {
+                        html += `
+                            <span class="badge bg-${statusClass}">${leave.status}</span>
+                        `;
+                    }
+
+                    html += `
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                container.innerHTML = html;
+            }
+
+            async function approveLeave(leaveId) {
+                const comment = prompt("Add admin comment (optional):");
+                if (comment === null) return; // User cancelled
+
+                try {
+                    await apiCall(`/api/leaves/${leaveId}/approve`, "PUT", {
+                        admin_comment: comment,
+                    });
+                    showAlert("success", "Leave request approved successfully!");
+                    loadAllLeaves(); // Reload data
+                } catch (error) {
+                    showAlert("error", "Failed to approve leave request: " + error.message);
+                }
+            }
+
+            async function rejectLeave(leaveId) {
+                const reason = prompt("Enter rejection reason:");
+                if (!reason || reason.trim().length < 5) {
+                    showAlert("error", "Rejection reason must be at least 5 characters");
+                    return;
+                }
+
+                const comment = prompt("Add admin comment (optional):");
+                if (comment === null) return; // User cancelled
+
+                try {
+                    await apiCall(`/api/leaves/${leaveId}/reject`, "PUT", {
+                        rejected_reason: reason,
+                        admin_comment: comment,
+                    });
+                    showAlert("success", "Leave request rejected successfully!");
+                    loadAllLeaves(); // Reload data
+                } catch (error) {
+                    showAlert("error", "Failed to reject leave request: " + error.message);
+                }
+            }
+        </script>
+    </body>
+</html>
