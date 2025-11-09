@@ -289,7 +289,8 @@ The system comes with sample data:
 **HR Admin:**
 
 -   Email: admin@company.com
--   Password: password
+-   Password: 
+
 
 **Employee:**
 
