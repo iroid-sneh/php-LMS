@@ -126,6 +126,44 @@ class Leave {
         return $stmt->rowCount() > 0;
     }
     
+    public function update($id, $data, $employeeId) {
+        $sql = "UPDATE {$this->table} 
+                SET leave_type = :leave_type, 
+                    start_date = :start_date, 
+                    end_date = :end_date,
+                    duration = :duration,
+                    duration_unit = :duration_unit,
+                    reason = :reason
+                WHERE id = :id AND employee_id = :employee_id AND status = 'pending'";
+        
+        $params = [
+            ':id' => $id,
+            ':employee_id' => $employeeId,
+            ':leave_type' => $data['leave_type'],
+            ':start_date' => $data['start_date'],
+            ':end_date' => $data['end_date'],
+            ':duration' => $data['duration'],
+            ':duration_unit' => $data['duration_unit'] ?? 'days',
+            ':reason' => $data['reason']
+        ];
+        
+        $stmt = $this->db->query($sql, $params);
+        return $stmt->rowCount() > 0;
+    }
+    
+    public function delete($id, $employeeId) {
+        $sql = "DELETE FROM {$this->table} 
+                WHERE id = :id AND employee_id = :employee_id AND status = 'pending'";
+        
+        $params = [
+            ':id' => $id,
+            ':employee_id' => $employeeId
+        ];
+        
+        $stmt = $this->db->query($sql, $params);
+        return $stmt->rowCount() > 0;
+    }
+    
     public function validateLeaveDates($startDate, $endDate) {
         $start = new DateTime($startDate);
         $end = new DateTime($endDate);
@@ -151,7 +189,7 @@ class Leave {
             return $diff->days * 24 + $diff->h;
         }
         
-        return $diff->days + 1; // Include both start and end days
+        return $diff->days + 1;
     }
     
     public function toArray($leave) {

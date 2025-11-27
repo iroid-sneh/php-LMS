@@ -148,6 +148,7 @@
                                 <th>Status</th>
                                 <th>Applied Date</th>
                                 <th>Admin Comment</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -197,6 +198,20 @@
                                     : ""
                             }
                         </td>
+                        <td>
+                            ${
+                                leave.status === "pending"
+                                    ? `
+                                <button class="btn btn-sm btn-warning me-1" onclick="editLeave(${leave.id})">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="cancelLeave(${leave.id})">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            `
+                                    : "-"
+                            }
+                        </td>
                     </tr>
                 `;
                 });
@@ -233,6 +248,79 @@
                         return "fas fa-times-circle";
                     default:
                         return "fas fa-question-circle";
+                }
+            }
+
+            async function editLeave(leaveId) {
+                try {
+                    const leave = await apiCall(`/api/leaves/get?id=${leaveId}`);
+                    
+                    const leaveType = prompt("Leave Type (sick/vacation/personal/emergency/other):", leave.leave_type);
+                    if (!leaveType) return;
+                    
+                    const startDate = prompt("Start Date (YYYY-MM-DD):", leave.start_date);
+                    if (!startDate) return;
+                    
+                    const endDate = prompt("End Date (YYYY-MM-DD):", leave.end_date);
+                    if (!endDate) return;
+                    
+                    const reason = prompt("Reason (min 10 characters):", leave.reason);
+                    if (!reason || reason.length < 10) {
+                        alert("Reason must be at least 10 characters");
+                        return;
+                    }
+                    
+                    const durationUnit = prompt("Duration Unit (days/hours):", leave.duration_unit || "days");
+                    
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    if (start >= end) {
+                        alert("End date must be after start date");
+                        return;
+                    }
+                    
+                    if (start < today) {
+                        alert("Cannot apply for leave in the past");
+                        return;
+                    }
+                    
+                    const diffTime = Math.abs(end.getTime() - start.getTime());
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    let duration = diffDays;
+                    if (durationUnit === "hours") {
+                        duration = diffDays * 24;
+                    }
+                    
+                    await apiCall(`/api/leaves/${leaveId}/update`, "PUT", {
+                        leave_type: leaveType,
+                        start_date: startDate,
+                        end_date: endDate,
+                        reason: reason,
+                        duration_unit: durationUnit,
+                        duration: duration
+                    });
+                    
+                    alert("Leave request updated successfully!");
+                    loadMyLeaves();
+                } catch (error) {
+                    alert("Failed to update leave: " + error.message);
+                }
+            }
+
+            async function cancelLeave(leaveId) {
+                if (!confirm("Are you sure you want to cancel this leave request?")) {
+                    return;
+                }
+                
+                try {
+                    await apiCall(`/api/leaves/${leaveId}/cancel`, "DELETE");
+                    alert("Leave request cancelled successfully!");
+                    loadMyLeaves();
+                } catch (error) {
+                    alert("Failed to cancel leave: " + error.message);
                 }
             }
         </script>

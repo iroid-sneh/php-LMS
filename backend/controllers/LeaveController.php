@@ -29,7 +29,6 @@ class LeaveController {
             $input = json_decode(file_get_contents('php://input'), true);
             $input = sanitizeInput($input);
             
-            // Validate required fields
             $requiredFields = ['leave_type', 'start_date', 'end_date', 'reason'];
             $errors = validateRequired($input, $requiredFields);
             
@@ -37,24 +36,20 @@ class LeaveController {
                 errorResponse(implode(', ', $errors), 400);
             }
             
-            // Validate leave type
             $validTypes = ['sick', 'vacation', 'personal', 'emergency', 'other'];
             if (!in_array($input['leave_type'], $validTypes)) {
                 errorResponse('Invalid leave type', 400);
             }
             
-            // Validate dates
             $dateValidation = $this->leaveModel->validateLeaveDates($input['start_date'], $input['end_date']);
             if (!$dateValidation['valid']) {
                 errorResponse($dateValidation['message'], 400);
             }
             
-            // Validate reason length
             if (strlen($input['reason']) < 10) {
                 errorResponse('Reason must be at least 10 characters', 400);
             }
             
-            // Calculate duration
             $duration = $this->leaveModel->calculateDuration(
                 $input['start_date'], 
                 $input['end_date'], 
@@ -108,7 +103,7 @@ class LeaveController {
         }
         
         try {
-            $this->authMiddleware->adminOnly(); // Only HR can access
+            $this->authMiddleware->adminOnly();
             $leaves = $this->leaveModel->findAll();
             
             $formattedLeaves = array_map([$this->leaveModel, 'toArray'], $leaves);
@@ -127,7 +122,7 @@ class LeaveController {
         }
         
         try {
-            $this->authMiddleware->authenticate(); // Any authenticated user can access
+            $this->authMiddleware->authenticate();
             $leaves = $this->leaveModel->getTodayLeaves();
             
             $formattedLeaves = array_map([$this->leaveModel, 'toArray'], $leaves);
@@ -227,7 +222,6 @@ class LeaveController {
                 errorResponse('Leave request not found', 404);
             }
             
-            // Check if user can access this leave request
             if ($user['role'] !== 'hr' && $leave['employee_id'] != $user['id']) {
                 errorResponse('Access denied', 403);
             }
@@ -236,6 +230,128 @@ class LeaveController {
             
         } catch (Exception $e) {
             errorResponse('Failed to fetch leave: ' . $e->getMessage(), 500);
+        }
+    }
+    
+    public function update() {
+        cors();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+            errorResponse('Method not allowed', 405);
+        }
+        
+        try {
+            $user = $this->authMiddleware->authenticate();
+            
+            $leaveId = $_GET['id'] ?? null;
+            if (!$leaveId) {
+                errorResponse('Leave ID required', 400);
+            }
+            
+            $leave = $this->leaveModel->findById($leaveId);
+            if (!$leave) {
+                errorResponse('Leave request not found', 404);
+            }
+            
+            if ($leave['employee_id'] != $user['id']) {
+                errorResponse('You can only edit your own leave requests', 403);
+            }
+            
+            if ($leave['status'] !== 'pending') {
+                errorResponse('Only pending leave requests can be edited', 400);
+            }
+            
+            $input = json_decode(file_get_contents('php://input'), true);
+            $input = sanitizeInput($input);
+            
+            $requiredFields = ['leave_type', 'start_date', 'end_date', 'reason'];
+            $errors = validateRequired($input, $requiredFields);
+            
+            if (!empty($errors)) {
+                errorResponse(implode(', ', $errors), 400);
+            }
+            
+            $validTypes = ['sick', 'vacation', 'personal', 'emergency', 'other'];
+            if (!in_array($input['leave_type'], $validTypes)) {
+                errorResponse('Invalid leave type', 400);
+            }
+            
+            $dateValidation = $this->leaveModel->validateLeaveDates($input['start_date'], $input['end_date']);
+            if (!$dateValidation['valid']) {
+                errorResponse($dateValidation['message'], 400);
+            }
+            
+            if (strlen($input['reason']) < 10) {
+                errorResponse('Reason must be at least 10 characters', 400);
+            }
+            
+            $duration = $this->leaveModel->calculateDuration(
+                $input['start_date'], 
+                $input['end_date'], 
+                $input['duration_unit'] ?? 'days'
+            );
+            
+            $leaveData = [
+                'leave_type' => $input['leave_type'],
+                'start_date' => $input['start_date'],
+                'end_date' => $input['end_date'],
+                'duration' => $duration,
+                'duration_unit' => $input['duration_unit'] ?? 'days',
+                'reason' => $input['reason']
+            ];
+            
+            $success = $this->leaveModel->update($leaveId, $leaveData, $user['id']);
+            
+            if (!$success) {
+                errorResponse('Failed to update leave request', 400);
+            }
+            
+            $updatedLeave = $this->leaveModel->findById($leaveId);
+            successResponse($this->leaveModel->toArray($updatedLeave), 'Leave request updated successfully');
+            
+        } catch (Exception $e) {
+            errorResponse('Failed to update leave: ' . $e->getMessage(), 500);
+        }
+    }
+    
+    public function cancel() {
+        cors();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+            errorResponse('Method not allowed', 405);
+        }
+        
+        try {
+            $user = $this->authMiddleware->authenticate();
+            
+            $leaveId = $_GET['id'] ?? null;
+            if (!$leaveId) {
+                errorResponse('Leave ID required', 400);
+            }
+            
+            $leave = $this->leaveModel->findById($leaveId);
+            if (!$leave) {
+                errorResponse('Leave request not found', 404);
+            }
+            
+            if ($leave['employee_id'] != $user['id']) {
+                errorResponse('You can only cancel your own leave requests', 403);
+            }
+            
+            if ($leave['status'] !== 'pending') {
+                errorResponse('Only pending leave requests can be cancelled', 400);
+            }
+            
+            $success = $this->leaveModel->delete($leaveId, $user['id']);
+            
+            if (!$success) {
+                errorResponse('Failed to cancel leave request', 400);
+            }
+            
+            successResponse([], 'Leave request cancelled successfully');
+            
+        } catch (Exception $e) {
+            errorResponse('Failed to cancel leave: ' . $e->getMessage(), 500);
         }
     }
 }

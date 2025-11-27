@@ -1,6 +1,5 @@
 <?php
 
-// Load environment variables
 function loadEnv($path) {
     if (!file_exists($path)) {
         return;
@@ -23,10 +22,8 @@ function loadEnv($path) {
     }
 }
 
-// Load .env file
 loadEnv(__DIR__ . '/../config.env');
 
-// Helper functions
 function env($key, $default = null) {
     return $_ENV[$key] ?? $default;
 }
@@ -67,50 +64,21 @@ function sanitizeInput($data) {
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
 
-function generateToken($userId) {
-    $secret = env('JWT_SECRET', 'fallback_secret');
-    $payload = [
-        'userId' => $userId,
-        'iat' => time(),
-        'exp' => time() + (env('JWT_EXPIRY', 604800)) // 7 days default
-    ];
-    
-    $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
-    $payload = json_encode($payload);
-    
-    $base64Header = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
-    $base64Payload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
-    
-    $signature = hash_hmac('sha256', $base64Header . "." . $base64Payload, $secret, true);
-    $base64Signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
-    
-    return $base64Header . "." . $base64Payload . "." . $base64Signature;
+function setSessionUser($user) {
+    $_SESSION['user_id'] = $user['id'];
+    $_SESSION['user'] = $user;
 }
 
-function verifyToken($token) {
-    $secret = env('JWT_SECRET', 'fallback_secret');
-    $parts = explode('.', $token);
-    
-    if (count($parts) !== 3) {
-        return false;
+function getSessionUser() {
+    if (isset($_SESSION['user'])) {
+        return $_SESSION['user'];
     }
-    
-    list($base64Header, $base64Payload, $base64Signature) = $parts;
-    
-    $signature = hash_hmac('sha256', $base64Header . "." . $base64Payload, $secret, true);
-    $expectedSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
-    
-    if (!hash_equals($expectedSignature, $base64Signature)) {
-        return false;
-    }
-    
-    $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $base64Payload)), true);
-    
-    if ($payload['exp'] < time()) {
-        return false;
-    }
-    
-    return $payload;
+    return null;
+}
+
+function clearSession() {
+    session_unset();
+    session_destroy();
 }
 
 function hashPassword($password) {
@@ -122,9 +90,10 @@ function verifyPassword($password, $hash) {
 }
 
 function cors() {
-    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Origin: http://localhost");
     header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
     header("Access-Control-Allow-Headers: Content-Type, Authorization");
+    header("Access-Control-Allow-Credentials: true");
     
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
         http_response_code(200);

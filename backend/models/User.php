@@ -75,7 +75,6 @@ class User {
         
         $result = $this->db->fetch($sql, [':user_id' => $userId]);
         
-        // Convert string values to integers
         return [
             'total_leaves' => (int)$result['total_leaves'],
             'approved_leaves' => (int)$result['approved_leaves'],
@@ -97,7 +96,6 @@ class User {
         
         $result = $this->db->fetch($sql);
         
-        // Convert string values to integers
         return [
             'total_employees' => (int)$result['total_employees'],
             'total_leaves' => (int)$result['total_leaves'],

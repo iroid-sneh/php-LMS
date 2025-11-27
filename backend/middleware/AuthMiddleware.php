@@ -11,37 +11,19 @@ class AuthMiddleware {
     }
     
     public function authenticate() {
-        $headers = getallheaders();
-        $token = null;
+        $user = getSessionUser();
         
-        // Check for Authorization header
-        if (isset($headers['Authorization'])) {
-            $authHeader = $headers['Authorization'];
-            if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-                $token = $matches[1];
-            }
-        }
-        
-        // Check for token in query parameter (fallback)
-        if (!$token && isset($_GET['token'])) {
-            $token = $_GET['token'];
-        }
-        
-        if (!$token) {
-            errorResponse('Access token required', 401);
-        }
-        
-        $payload = verifyToken($token);
-        if (!$payload) {
-            errorResponse('Invalid or expired token', 401);
-        }
-        
-        $user = $this->userModel->findById($payload['userId']);
         if (!$user) {
+            errorResponse('Please login first', 401);
+        }
+        
+        $currentUser = $this->userModel->findById($user['id']);
+        if (!$currentUser) {
+            clearSession();
             errorResponse('User not found', 401);
         }
         
-        return $user;
+        return $currentUser;
     }
     
     public function adminOnly() {
@@ -55,25 +37,11 @@ class AuthMiddleware {
     }
     
     public function optionalAuth() {
-        $headers = getallheaders();
-        $token = null;
-        
-        if (isset($headers['Authorization'])) {
-            $authHeader = $headers['Authorization'];
-            if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-                $token = $matches[1];
-            }
-        }
-        
-        if (!$token) {
+        $user = getSessionUser();
+        if (!$user) {
             return null;
         }
         
-        $payload = verifyToken($token);
-        if (!$payload) {
-            return null;
-        }
-        
-        return $this->userModel->findById($payload['userId']);
+        return $this->userModel->findById($user['id']);
     }
 }

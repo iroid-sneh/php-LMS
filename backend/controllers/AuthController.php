@@ -18,46 +18,54 @@ class AuthController {
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             errorResponse('Method not allowed', 405);
+            return;
         }
         
-        $input = json_decode(file_get_contents('php://input'), true);
+        $jsonData = file_get_contents('php://input');
+        $input = json_decode($jsonData, true);
         $input = sanitizeInput($input);
         
-        // Validate required fields
         $requiredFields = ['name', 'email', 'password', 'department', 'position', 'employee_id'];
         $errors = validateRequired($input, $requiredFields);
         
         if (!empty($errors)) {
-            errorResponse(implode(', ', $errors), 400);
+            $errorMessage = implode(', ', $errors);
+            errorResponse($errorMessage, 400);
+            return;
         }
         
-        // Validate email format
-        if (!filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {
+        $email = $input['email'];
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             errorResponse('Invalid email format', 400);
+            return;
         }
         
-        // Validate password length
-        if (strlen($input['password']) < 6) {
+        $password = $input['password'];
+        if (strlen($password) < 6) {
             errorResponse('Password must be at least 6 characters', 400);
+            return;
         }
         
-        // Check if user already exists
-        if ($this->userModel->exists($input['email'], $input['employee_id'])) {
+        $emailExists = $this->userModel->exists($input['email'], $input['employee_id']);
+        if ($emailExists) {
             errorResponse('User with this email or employee ID already exists', 400);
+            return;
         }
         
         try {
             $userId = $this->userModel->create($input);
             $user = $this->userModel->findById($userId);
-            $token = generateToken($userId);
             
-            successResponse([
-                'token' => $token,
-                'user' => $this->userModel->toArray($user)
-            ], 'User registered successfully');
+            setSessionUser($user);
+            
+            $responseData = array();
+            $responseData['user'] = $this->userModel->toArray($user);
+            
+            successResponse($responseData, 'User registered successfully');
             
         } catch (Exception $e) {
-            errorResponse('Registration failed: ' . $e->getMessage(), 500);
+            $errorMsg = 'Registration failed: ' . $e->getMessage();
+            errorResponse($errorMsg, 500);
         }
     }
     
@@ -66,40 +74,52 @@ class AuthController {
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             errorResponse('Method not allowed', 405);
+            return;
         }
         
-        $input = json_decode(file_get_contents('php://input'), true);
+        $jsonData = file_get_contents('php://input');
+        $input = json_decode($jsonData, true);
         $input = sanitizeInput($input);
         
-        // Validate required fields
         $requiredFields = ['email', 'password'];
         $errors = validateRequired($input, $requiredFields);
         
         if (!empty($errors)) {
-            errorResponse(implode(', ', $errors), 400);
+            $errorMessage = implode(', ', $errors);
+            errorResponse($errorMessage, 400);
+            return;
         }
         
-        // Validate email format
-        if (!filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {
+        $email = $input['email'];
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             errorResponse('Invalid email format', 400);
+            return;
         }
         
         try {
             $user = $this->userModel->findByEmail($input['email']);
             
-            if (!$user || !$this->userModel->verifyPassword($input['password'], $user['password'])) {
+            if (!$user) {
                 errorResponse('Invalid credentials', 400);
+                return;
             }
             
-            $token = generateToken($user['id']);
+            $passwordMatch = $this->userModel->verifyPassword($input['password'], $user['password']);
+            if (!$passwordMatch) {
+                errorResponse('Invalid credentials', 400);
+                return;
+            }
             
-            successResponse([
-                'token' => $token,
-                'user' => $this->userModel->toArray($user)
-            ], 'Login successful');
+            setSessionUser($user);
+            
+            $responseData = array();
+            $responseData['user'] = $this->userModel->toArray($user);
+            
+            successResponse($responseData, 'Login successful');
             
         } catch (Exception $e) {
-            errorResponse('Login failed: ' . $e->getMessage(), 500);
+            $errorMsg = 'Login failed: ' . $e->getMessage();
+            errorResponse($errorMsg, 500);
         }
     }
     
@@ -108,14 +128,32 @@ class AuthController {
         
         if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
             errorResponse('Method not allowed', 405);
+            return;
         }
         
         try {
             $user = $this->authMiddleware->authenticate();
-            successResponse(['user' => $this->userModel->toArray($user)]);
+            
+            $responseData = array();
+            $responseData['user'] = $this->userModel->toArray($user);
+            
+            successResponse($responseData);
             
         } catch (Exception $e) {
-            errorResponse('Authentication failed: ' . $e->getMessage(), 401);
+            $errorMsg = 'Authentication failed: ' . $e->getMessage();
+            errorResponse($errorMsg, 401);
         }
+    }
+    
+    public function logout() {
+        cors();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            errorResponse('Method not allowed', 405);
+            return;
+        }
+        
+        clearSession();
+        successResponse([], 'Logged out successfully');
     }
 }
