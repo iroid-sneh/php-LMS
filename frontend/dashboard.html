@@ -158,14 +158,14 @@
                 </div>
             </div>
 
-            <!-- Today's Leaves -->
+            <!-- All Employees on Leave -->
             <div class="row">
                 <div class="col-12">
                     <div class="card border-0 shadow-sm">
                         <div class="card-header bg-info text-white">
                             <h5 class="mb-0">
                                 <i class="fas fa-calendar-day me-2"></i>
-                                Employees on Leave Today
+                                All Employees on Leave
                             </h5>
                         </div>
                         <div class="card-body">
@@ -211,9 +211,9 @@
 
             async function loadDashboardData() {
                 try {
-                    const [statsResponse, todayLeavesResponse] = await Promise.all([
+                    const [statsResponse, activeLeavesResponse] = await Promise.all([
                         apiCall("/api/users/stats"),
-                        apiCall("/api/leaves/today"),
+                        apiCall("/api/leaves/active"),
                     ]);
 
                     // Update statistics
@@ -225,12 +225,12 @@
                     document.getElementById("rejectedLeaves").textContent =
                         statsResponse.rejected_leaves;
 
-                    // Update today's leaves
-                    displayTodayLeaves(todayLeavesResponse);
+                    // Update active leaves
+                    displayTodayLeaves(activeLeavesResponse);
                 } catch (error) {
                     console.error("Error loading dashboard data:", error);
                     document.getElementById("todayLeavesContainer").innerHTML =
-                        '<div class="alert alert-primary">No one is on leaves today</div>';
+                        '<div class="alert alert-danger">Error loading leave information. Please refresh the page.</div>';
                 }
             }
 
@@ -239,7 +239,7 @@
 
                 if (leaves.length === 0) {
                     container.innerHTML =
-                        '<p class="text-muted text-center">No employees are on leave today.</p>';
+                        '<p class="text-muted text-center">No employees are currently on leave.</p>';
                     return;
                 }
 
@@ -248,26 +248,43 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Employee</th>
+                                <th>Employee Name</th>
                                 <th>Department</th>
+                                <th>Position</th>
                                 <th>Leave Type</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
                                 <th>Duration</th>
                                 <th>Reason</th>
-                                <th>End Date</th>
                             </tr>
                         </thead>
                         <tbody>
             `;
 
                 leaves.forEach((leave) => {
+                    const startDate = new Date(leave.start_date);
+                    const endDate = new Date(leave.end_date);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    // Check if leave is currently active (today is between start and end)
+                    const isActive = today >= startDate && today <= endDate;
+                    const rowClass = isActive ? 'table-info' : '';
+                    
                     html += `
-                    <tr>
-                        <td>${leave.employee.name}</td>
+                    <tr class="${rowClass}">
+                        <td><strong>${leave.employee.name}</strong><br><small class="text-muted">ID: ${leave.employee.employee_id}</small></td>
                         <td>${leave.employee.department}</td>
-                        <td><span class="badge bg-info">${leave.leave_type}</span></td>
-                        <td>${leave.duration} ${leave.duration_unit}</td>
-                        <td>${leave.reason}</td>
+                        <td>${leave.employee.position}</td>
+                        <td><span class="badge bg-info">${leave.leave_type.charAt(0).toUpperCase() + leave.leave_type.slice(1)}</span></td>
+                        <td>${formatDate(leave.start_date)}</td>
                         <td>${formatDate(leave.end_date)}</td>
+                        <td><strong>${leave.duration} ${leave.duration_unit}</strong></td>
+                        <td>
+                            <div style="max-width: 250px; word-wrap: break-word;">
+                                ${leave.reason}
+                            </div>
+                        </td>
                     </tr>
                 `;
                 });
@@ -275,6 +292,12 @@
                 html += `
                         </tbody>
                     </table>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Highlighted rows indicate employees currently on leave today.
+                    </small>
                 </div>
             `;
 

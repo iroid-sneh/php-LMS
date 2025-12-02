@@ -76,6 +76,17 @@ class Leave {
         return $this->db->fetchAll($sql);
     }
     
+    public function getActiveLeaves() {
+        $sql = "SELECT l.*, u.name, u.email, u.employee_id as user_employee_id, u.department, u.position
+                FROM {$this->table} l 
+                JOIN users u ON l.employee_id = u.id 
+                WHERE l.status = 'approved' 
+                AND CURDATE() BETWEEN l.start_date AND l.end_date
+                ORDER BY l.start_date ASC";
+        
+        return $this->db->fetchAll($sql);
+    }
+    
     public function getPendingLeaves() {
         $sql = "SELECT l.*, u.name, u.email, u.employee_id as user_employee_id, u.department, u.position
                 FROM {$this->table} l 
@@ -134,7 +145,7 @@ class Leave {
                     duration = :duration,
                     duration_unit = :duration_unit,
                     reason = :reason
-                WHERE id = :id AND employee_id = :employee_id AND status = 'pending'";
+                WHERE id = :id AND employee_id = :employee_id";
         
         $params = [
             ':id' => $id,
@@ -168,6 +179,8 @@ class Leave {
         $start = new DateTime($startDate);
         $end = new DateTime($endDate);
         $today = new DateTime();
+        $today->setTime(0, 0, 0);
+        $start->setTime(0, 0, 0);
         
         if ($start >= $end) {
             return ['valid' => false, 'message' => 'End date must be after start date'];

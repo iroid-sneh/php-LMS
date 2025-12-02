@@ -133,6 +133,33 @@ class LeaveController {
         }
     }
     
+    public function activeLeaves() {
+        cors();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            errorResponse('Method not allowed', 405);
+            return;
+        }
+        
+        try {
+            $user = $this->authMiddleware->authenticate();
+            $leaves = $this->leaveModel->getActiveLeaves();
+            
+            if (empty($leaves)) {
+                successResponse([]);
+                return;
+            }
+            
+            $formattedLeaves = array_map([$this->leaveModel, 'toArray'], $leaves);
+            successResponse($formattedLeaves);
+            
+        } catch (Exception $e) {
+            errorResponse('Failed to fetch active leaves: ' . $e->getMessage(), 500);
+        } catch (Error $e) {
+            errorResponse('Fatal error: ' . $e->getMessage(), 500);
+        }
+    }
+    
     public function approve() {
         cors();
         
@@ -255,10 +282,6 @@ class LeaveController {
             
             if ($leave['employee_id'] != $user['id']) {
                 errorResponse('You can only edit your own leave requests', 403);
-            }
-            
-            if ($leave['status'] !== 'pending') {
-                errorResponse('Only pending leave requests can be edited', 400);
             }
             
             $input = json_decode(file_get_contents('php://input'), true);

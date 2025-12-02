@@ -269,6 +269,7 @@
                 const endDate = new Date(data.endDate);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
+                startDate.setHours(0, 0, 0, 0);
 
                 if (startDate >= endDate) {
                     showAlert("error", "End date must be after start date");

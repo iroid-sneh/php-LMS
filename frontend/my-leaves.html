@@ -86,6 +86,76 @@
             </div>
         </div>
 
+        <!-- Edit Leave Modal -->
+        <div class="modal fade" id="editLeaveModal" tabindex="-1" aria-labelledby="editLeaveModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="editLeaveModalLabel">
+                            <i class="fas fa-edit me-2"></i>
+                            Edit Leave Request
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="editAlertContainer"></div>
+                        <form id="editLeaveForm">
+                            <input type="hidden" id="editLeaveId" />
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="editLeaveType" class="form-label">Leave Type *</label>
+                                    <select class="form-select" id="editLeaveType" name="leaveType" required>
+                                        <option value="">Select Leave Type</option>
+                                        <option value="sick">Sick Leave</option>
+                                        <option value="vacation">Vacation</option>
+                                        <option value="personal">Personal</option>
+                                        <option value="emergency">Emergency</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="editDurationUnit" class="form-label">Duration Unit</label>
+                                    <select class="form-select" id="editDurationUnit" name="durationUnit">
+                                        <option value="days">Days</option>
+                                        <option value="hours">Hours</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="editStartDate" class="form-label">Start Date *</label>
+                                    <input type="date" class="form-control" id="editStartDate" name="startDate" required />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="editEndDate" class="form-label">End Date *</label>
+                                    <input type="date" class="form-control" id="editEndDate" name="endDate" required />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editDuration" class="form-label">Duration (Auto-calculated)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="editDuration" name="duration" step="0.5" min="0.5" readonly />
+                                    <span class="input-group-text" id="editDurationUnitText">days</span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editReason" class="form-label">Reason *</label>
+                                <textarea class="form-control" id="editReason" name="reason" rows="4" placeholder="Please provide a detailed reason for your leave request..." required></textarea>
+                                <div class="form-text">Minimum 10 characters required</div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="updateLeaveBtn" onclick="updateLeave()">
+                            <i class="fas fa-save me-2"></i>
+                            <span class="btn-text">Update Leave</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
         <script src="js/auth.js"></script>
         <script src="js/api.js"></script>
@@ -199,17 +269,17 @@
                             }
                         </td>
                         <td>
+                            <button class="btn btn-sm btn-warning me-1" onclick="openEditModal(${leave.id})">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
                             ${
                                 leave.status === "pending"
                                     ? `
-                                <button class="btn btn-sm btn-warning me-1" onclick="editLeave(${leave.id})">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
                                 <button class="btn btn-sm btn-danger" onclick="cancelLeave(${leave.id})">
                                     <i class="fas fa-times"></i> Cancel
                                 </button>
                             `
-                                    : "-"
+                                    : ""
                             }
                         </td>
                     </tr>
@@ -251,63 +321,139 @@
                 }
             }
 
-            async function editLeave(leaveId) {
+            async function openEditModal(leaveId) {
                 try {
                     const leave = await apiCall(`/api/leaves/get?id=${leaveId}`);
                     
-                    const leaveType = prompt("Leave Type (sick/vacation/personal/emergency/other):", leave.leave_type);
-                    if (!leaveType) return;
+                    // Populate form fields
+                    document.getElementById("editLeaveId").value = leave.id;
+                    document.getElementById("editLeaveType").value = leave.leave_type;
+                    document.getElementById("editStartDate").value = leave.start_date;
+                    document.getElementById("editEndDate").value = leave.end_date;
+                    document.getElementById("editReason").value = leave.reason;
+                    document.getElementById("editDurationUnit").value = leave.duration_unit || "days";
+                    document.getElementById("editDurationUnitText").textContent = leave.duration_unit || "days";
+                    document.getElementById("editDuration").value = leave.duration;
                     
-                    const startDate = prompt("Start Date (YYYY-MM-DD):", leave.start_date);
-                    if (!startDate) return;
+                    // Set minimum date to today
+                    const today = new Date().toISOString().split("T")[0];
+                    document.getElementById("editStartDate").min = today;
+                    document.getElementById("editEndDate").min = today;
                     
-                    const endDate = prompt("End Date (YYYY-MM-DD):", leave.end_date);
-                    if (!endDate) return;
+                    // Clear alert container
+                    document.getElementById("editAlertContainer").innerHTML = "";
                     
-                    const reason = prompt("Reason (min 10 characters):", leave.reason);
-                    if (!reason || reason.length < 10) {
-                        alert("Reason must be at least 10 characters");
-                        return;
-                    }
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById("editLeaveModal"));
+                    modal.show();
                     
-                    const durationUnit = prompt("Duration Unit (days/hours):", leave.duration_unit || "days");
-                    
+                    // Setup event listeners for duration calculation
+                    document.getElementById("editStartDate").addEventListener("change", calculateEditDuration);
+                    document.getElementById("editEndDate").addEventListener("change", calculateEditDuration);
+                    document.getElementById("editDurationUnit").addEventListener("change", function() {
+                        document.getElementById("editDurationUnitText").textContent = this.value;
+                        calculateEditDuration();
+                    });
+                } catch (error) {
+                    alert("Failed to load leave details: " + error.message);
+                }
+            }
+            
+            function calculateEditDuration() {
+                const startDate = document.getElementById("editStartDate").value;
+                const endDate = document.getElementById("editEndDate").value;
+                const durationUnit = document.getElementById("editDurationUnit").value;
+                
+                if (startDate && endDate) {
                     const start = new Date(startDate);
                     const end = new Date(endDate);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    
-                    if (start >= end) {
-                        alert("End date must be after start date");
-                        return;
-                    }
-                    
-                    if (start < today) {
-                        alert("Cannot apply for leave in the past");
-                        return;
-                    }
-                    
                     const diffTime = Math.abs(end.getTime() - start.getTime());
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    
                     let duration = diffDays;
                     if (durationUnit === "hours") {
                         duration = diffDays * 24;
                     }
                     
+                    document.getElementById("editDuration").value = duration;
+                }
+            }
+            
+            async function updateLeave() {
+                const form = document.getElementById("editLeaveForm");
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                const leaveId = document.getElementById("editLeaveId").value;
+                
+                // Validate required fields
+                if (!data.leaveType || !data.startDate || !data.endDate || !data.reason) {
+                    showEditAlert("error", "Please fill in all required fields");
+                    return;
+                }
+                
+                // Validate reason length
+                if (data.reason.length < 10) {
+                    showEditAlert("error", "Reason must be at least 10 characters long");
+                    return;
+                }
+                
+                // Validate dates
+                const startDate = new Date(data.startDate);
+                const endDate = new Date(data.endDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                startDate.setHours(0, 0, 0, 0);
+                
+                if (startDate >= endDate) {
+                    showEditAlert("error", "End date must be after start date");
+                    return;
+                }
+                
+                if (startDate < today) {
+                    showEditAlert("error", "Cannot apply for leave in the past");
+                    return;
+                }
+                
+                const submitBtn = document.getElementById("updateLeaveBtn");
+                const btnText = submitBtn.querySelector(".btn-text");
+                
+                // Show loading state
+                submitBtn.disabled = true;
+                btnText.textContent = "Updating...";
+                
+                try {
                     await apiCall(`/api/leaves/${leaveId}/update`, "PUT", {
-                        leave_type: leaveType,
-                        start_date: startDate,
-                        end_date: endDate,
-                        reason: reason,
-                        duration_unit: durationUnit,
-                        duration: duration
+                        leave_type: data.leaveType,
+                        start_date: data.startDate,
+                        end_date: data.endDate,
+                        reason: data.reason,
+                        duration_unit: data.durationUnit,
+                        duration: parseFloat(data.duration),
                     });
                     
-                    alert("Leave request updated successfully!");
-                    loadMyLeaves();
+                    showEditAlert("success", "Leave request updated successfully!");
+                    
+                    // Close modal and reload
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById("editLeaveModal"));
+                        modal.hide();
+                        loadMyLeaves();
+                    }, 1500);
                 } catch (error) {
-                    alert("Failed to update leave: " + error.message);
+                    showEditAlert("error", error.message);
+                } finally {
+                    submitBtn.disabled = false;
+                    btnText.textContent = "Update Leave";
                 }
+            }
+            
+            function showEditAlert(type, message) {
+                const container = document.getElementById("editAlertContainer");
+                const alertClass = type === "error" ? "alert-danger" : "alert-success";
+                container.innerHTML = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>`;
             }
 
             async function cancelLeave(leaveId) {

@@ -22,6 +22,7 @@ class Router {
         $this->routes['GET']['/api/leaves/my-leaves'] = ['LeaveController', 'myLeaves'];
         $this->routes['GET']['/api/leaves/all'] = ['LeaveController', 'allLeaves'];
         $this->routes['GET']['/api/leaves/today'] = ['LeaveController', 'todayLeaves'];
+        $this->routes['GET']['/api/leaves/active'] = ['LeaveController', 'activeLeaves'];
         $this->routes['PUT']['/api/leaves/approve'] = ['LeaveController', 'approve'];
         $this->routes['PUT']['/api/leaves/reject'] = ['LeaveController', 'reject'];
         $this->routes['PUT']['/api/leaves/update'] = ['LeaveController', 'update'];
@@ -48,6 +49,8 @@ class Router {
                 $basePath = '/api/leaves/get';
                 $_GET['id'] = $matches[1];
             }
+            // Keep the original path for routes like /api/leaves/active, /api/leaves/today, etc.
+            // Only modify if it's a numeric ID route
         }
         
         if (!isset($this->routes[$method][$basePath])) {
@@ -59,19 +62,23 @@ class Router {
         $methodName = $route[1];
         
         if (!class_exists($controllerName)) {
-            errorResponse('Controller not found', 500);
-        }
-        
-        $controller = new $controllerName();
-        
-        if (!method_exists($controller, $methodName)) {
-            errorResponse('Method not found', 500);
+            errorResponse('Controller not found: ' . $controllerName, 500);
+            return;
         }
         
         try {
+            $controller = new $controllerName();
+            
+            if (!method_exists($controller, $methodName)) {
+                errorResponse('Method not found: ' . $methodName . ' in ' . $controllerName, 500);
+                return;
+            }
+            
             $controller->$methodName();
         } catch (Exception $e) {
             errorResponse('Internal server error: ' . $e->getMessage(), 500);
+        } catch (Error $e) {
+            errorResponse('Fatal error: ' . $e->getMessage(), 500);
         }
     }
 }

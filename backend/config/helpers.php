@@ -29,6 +29,10 @@ function env($key, $default = null) {
 }
 
 function response($data, $status = 200) {
+    // Clear any output that might have been sent before
+    if (ob_get_level() > 0) {
+        ob_clean();
+    }
     http_response_code($status);
     header('Content-Type: application/json');
     echo json_encode($data);
